@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lecture Attendance System</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+  <div>
+    <h3>Record Batch Attendance</h3>
+    <label for="batchLectureId">Lecture ID:</label>
+    <input type="text" id="batchLectureId" placeholder="Enter Lecture ID" />
+
+    <label for="batchRollNumbers">Roll Numbers (comma-separated):</label>
+    <input type="text" id="batchRollNumbers" placeholder="Enter Roll Numbers" />
+
+    <button onclick="recordBatchAttendance()">Record Batch Attendance</button>
+
+    <p id="result"></p>
+    <!-- This will display the result -->
+     
+    <hr>
+    <div>
+      <!-- Section for generating attendance report -->
+      <h3>Generate Attendance Report</h3>
+      <label for="lectureId">Enter Lecture ID:</label>
+      <input type="number" id="lectureId" placeholder="Enter lecture ID" />
+      <button onclick="generateAttendanceReport()">Get Attendance Report</button>
+      
+      <!-- Display the report -->
+      <h2>Attendance Report:</h2>
+      <p id="attendanceReport"></p>
+    </div>
+  </div>
+</body>
+</html>

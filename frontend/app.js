@@ -1,25 +1,18 @@
-// Ensure you have the necessary Web3 library loaded
-// Example: <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
-
 window.addEventListener("load", async () => {
   // Connect to Ganache
   const provider = new Web3.providers.HttpProvider("http://localhost:7545");
   web3 = new Web3(provider);
+  // Request account access if needed
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+  // We now have access to the user's account
+  const accounts = await ethereum.request({ method: "eth_accounts" });
+  console.log("Connected to MetaMask with account:", accounts[0]);
+
+  // Set the selected account
+  selectedAccount = accounts[0];
 
   try {
-    const accounts = await web3.eth.getAccounts();
-    console.log("Connected to Ganache with accounts:", accounts);
-
-    // Populate dropdown with accounts
-    const accountDropdown = document.getElementById("accountDropdown");
-    accounts.forEach((account) => {
-      const option = document.createElement("option");
-      option.value = account;
-      option.textContent = account;
-      accountDropdown.appendChild(option);
-    });
-
-    const contractAddress = "0xF47d6b65722f06567DAFC4f24935Ae93F092a806"; // Replace with your deployed contract address
+    const contractAddress = "0x56Ef7D70E71143eD81e8C31711f1d391A65Da864"; // Replace with your deployed contract address
     const abi = [
       {
         "anonymous": false,
@@ -94,6 +87,26 @@ window.addEventListener("load", async () => {
         ],
         "stateMutability": "nonpayable",
         "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "lectureId",
+            "type": "uint256"
+          }
+        ],
+        "name": "getAttendanceReport",
+        "outputs": [
+          {
+            "internalType": "uint256[]",
+            "name": "",
+            "type": "uint256[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function",
+        "constant": true
       }
     ];
 
@@ -110,7 +123,6 @@ async function recordBatchAttendance() {
     .getElementById("batchRollNumbers")
     .value.split(",")
     .map((x) => parseInt(x.trim())); // Assuming roll numbers are comma-separated
-  const selectedAccount = document.getElementById("accountDropdown").value;
 
   if (isNaN(lectureId) || rollNumbers.some(isNaN)) {
     document.getElementById("result").innerText = "Invalid input data.";
@@ -123,6 +135,21 @@ async function recordBatchAttendance() {
       .send({
         from: selectedAccount,
         gas: 3000000, // Adjust as necessary
+      })
+      .on("transactionHash", (hash) => {
+        document.getElementById("result").innerText =
+          "Transaction submitted. Waiting for confirmation...";
+        console.log("Transaction hash:", hash); // Log the transaction hash
+      })
+      .on("receipt", (receipt) => {
+        document.getElementById("result").innerText =
+          "Batch attendance recorded successfully.";
+        console.log("Transaction receipt:", receipt); // Log the receipt for debugging
+      })
+      .on("error", (error) => {
+        console.error("Transaction failed:", error);
+        document.getElementById("result").innerText =
+          "Error recording batch attendance. Check the console for details.";
       });
     console.log("Transaction result:", result); // Log the result for debugging
     document.getElementById("result").innerText =
@@ -135,57 +162,62 @@ async function recordBatchAttendance() {
 }
 
 async function findAttendanceForRollNumber() {
-  const rollNumber = document.getElementById('rollNumber').value;
+  const rollnumber = parseInt(document.getElementById('rollNumber').value);
   const fromBlock = 0;
   const toBlock = 'latest';
   const recordsDisplay = document.getElementById('attendanceRecords');
   recordsDisplay.innerText = ''; // Clear previous results
-
+  console.log("Searching for attendance records for roll number:", rollnumber);
 
   const events = await proofOfAttendance.getPastEvents('AttendanceRecorded', {
-    filter: { rollNumbers: rollNumber }, // Filter events by the specific roll number
     fromBlock: fromBlock,
     toBlock: toBlock
   });
 
-  if (events.length === 0) {
-    recordsDisplay.innerText = `No attendance records found for roll number ${rollNumber}`;
+  // Manually filter the events for the specified roll number
+  const filteredEvents = events.filter(event => parseInt(event.returnValues.rollNumber) === rollnumber);
+
+  if (filteredEvents.length === 0) {
+    recordsDisplay.innerText = `No attendance records found for roll number ${rollnumber}`;
   } else {
     const uniqueEvents = new Set();
 
-    events.forEach((event) => {
+    filteredEvents.forEach((event) => {
       const lectureId = event.returnValues.lectureId;
       if (!uniqueEvents.has(lectureId)) {
         uniqueEvents.add(lectureId);
-        const record = `Attendance found for roll number ${rollNumber}:\nLecture ID: ${event.returnValues.lectureId}\nTimestamp: ${new Date(event.returnValues.timestamp * 1000).toLocaleString()}\n\n`;
+        const record = `Attendance found for roll number ${rollnumber}:\nLecture ID: ${event.returnValues.lectureId}\nTimestamp: ${new Date(event.returnValues.timestamp * 1000).toLocaleString()}\n\n`;
         recordsDisplay.innerText += record; // Append each record to the display
       }
     });
   }
-  console.log(events);
+  console.log(filteredEvents);
+}
 
-  async function getAttendanceReport(lectureId) {
-    const events = await contract.getPastEvents('AttendanceRecorded', {
-      filter: { lectureId: lectureId },
-      fromBlock: 0,
-      toBlock: 'latest'
-    });
-  
-    const presentRollNumbers = new Set(); // To store unique roll numbers
-  
-    events.forEach((event) => {
-      const recordedRollNumbers = event.returnValues.rollNumbers;
-      recordedRollNumbers.forEach((rollNumber) => {
-        presentRollNumbers.add(rollNumber); // Add each roll number to the set
-      });
-    });
-  
-    // Convert the set to an array if needed
-    const resultArray = Array.from(presentRollNumbers);
-  
-    // Display or return the result
-    console.log(`Roll numbers present for Lecture ID ${lectureId}:`, resultArray);
-    return resultArray;
+async function generateAttendanceReport() {
+  // Retrieve the lecture ID from the input field
+  const lectureId = parseInt(document.getElementById("lectureId").value);
+  const attendanceReportDisplay = document.getElementById("attendanceReport");
+
+  // Clear previous results
+  attendanceReportDisplay.innerText = "Loading report...";
+
+  if (isNaN(lectureId) || lectureId <= 0) {
+    attendanceReportDisplay.innerText = "Please enter a valid lecture ID.";
+    return;
   }
 
+  try {
+    // Call getAttendanceReport function and display results
+    const presentRollNumbers = await proofOfAttendance.methods.getAttendanceReport(lectureId).call();
+
+    if (presentRollNumbers.length === 0) {
+      attendanceReportDisplay.innerText = `No attendance records found for Lecture ID ${lectureId}.`;
+    } else {
+      attendanceReportDisplay.innerText = `Roll numbers present for Lecture ID ${lectureId}: ${presentRollNumbers.join(", ")}`;
+    }
+  } catch (error) {
+    console.error("Error fetching attendance report:", error);
+    attendanceReportDisplay.innerText = "Error fetching attendance report. Please check the console for details.";
+  }
 }

@@ -11,30 +11,12 @@
 
 <body>
   <div>
-    <h3>Record Batch Attendance</h3>
-    <label for="accountDropdown">Select Account:</label>
-    <select id="accountDropdown">
-      <!-- Accounts will be populated here -->
-    </select>
-
-    <label for="batchLectureId">Lecture ID:</label>
-    <input type="text" id="batchLectureId" placeholder="Enter Lecture ID" />
-
-    <label for="batchRollNumbers">Roll Numbers (comma-separated):</label>
-    <input type="text" id="batchRollNumbers" placeholder="Enter Roll Numbers" />
-
-    <button onclick="recordBatchAttendance()">Record Batch Attendance</button>
-
-    <p id="result"></p>
-    <!-- This will display the result -->
-    <hr>
-
     <!-- Section for viewing attendance records -->
     <h3>View Attendance Record</h3>
     <label for="rollNumber">Enter Roll Number:</label>
     <input type="number" id="rollNumber" placeholder="Enter roll number" />
     <button onclick="findAttendanceForRollNumber()">Find Attendance</button>
-
+    
     <!-- This section will display the attendance records -->
     <h2>Attendance Records:</h2>
     <p id="attendanceRecords"></p> <!-- This will display the records -->

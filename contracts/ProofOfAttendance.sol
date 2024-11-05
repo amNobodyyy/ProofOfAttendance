@@ -43,9 +43,4 @@ contract ProofOfAttendance {
 
         return presentRollNumbers;
     }
-
-    // Verify if a roll number was present in a specific lecture
-    // function verifyAttendance(uint256 lectureId, uint256 rollNumber) public view returns (bool) {
-    //     return attendance[lectureId][rollNumber];
-    // }
 }
